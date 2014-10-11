@@ -10,6 +10,7 @@ using System.Web.Mvc;
 using TriTracker.Model;
 using TriTracker.Model.ViewModel;
 using TriTracker.Web.DataContexts;
+using AutoMapper;
 
 namespace TriTracker.Web.Controllers
 {
@@ -62,8 +63,8 @@ namespace TriTracker.Web.Controllers
 
             if (ModelState.IsValid)
             {
-                var newActivity = new Activity();
-                newActivity.Athlete = db.Athletes.SingleOrDefault(a => a.AspNetUserId == activity.AspNetUserId); ;
+                var newActivity = Mapper.Map<ActivityViewModel,Activity>(activity);
+                newActivity.Athlete = db.Athletes.SingleOrDefault(a => a.AspNetUserId == activity.AspNetUserId); 
 
                 db.Activities.Add(newActivity);
                 await db.SaveChangesAsync();    
@@ -80,12 +81,17 @@ namespace TriTracker.Web.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
+            
             Activity activity = await db.Activities.FindAsync(id);
+            
+
             if (activity == null)
             {
                 return HttpNotFound();
             }
-            return View(activity);
+
+            var activityViewModel = Mapper.Map<Activity, ActivityViewModel>(activity);
+            return View(activityViewModel);
         }
 
         // POST: Activities/Edit/5
@@ -93,15 +99,20 @@ namespace TriTracker.Web.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit([Bind(Include = "Id,ActivityType,Distance,TimeTaken,StartLocation,EndLocation,StartDateTime,EndDateTime")] Activity activity)
+        public async Task<ActionResult> Edit([Bind(Include = "Id,ActivityType,Distance,TimeTaken,StartLocation,EndLocation,StartDateTime,EndDateTime")] Activity activityViewModel)
         {
+            
+            //Mapper.Map(activityViewModel, activity, typeof(ActivityViewModel), typeof(Activity));
+
             if (ModelState.IsValid)
             {
-                db.Entry(activity).State = EntityState.Modified;
+                var existingEntity = db.Activities.Find(activityViewModel.Id);
+                db.Entry(existingEntity).CurrentValues.SetValues(activityViewModel);
+               // _db.Entry(activity).State = EntityState.Modified;
                 await db.SaveChangesAsync();
                 return RedirectToAction("Index");
             }
-            return View(activity);
+            return View(activityViewModel);
         }
 
         // GET: Activities/Delete/5
